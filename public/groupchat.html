@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta content="width=device-width, initial-scale=1.0" name="viewport">
+        <link href="style.css" rel="stylesheet" type="text/css">
+        <script src="groupchat.js"></script>
+        <title>Group Chat</title>
+    </head>
+    <body>
+    
+    <center><h3>Group Chat</h3></center>
+    
+    <div class="login-container">
+        <form action="#" id="login_form">
+            <label><b>Username</b></label><br>
+            <input type="text" placeholder="Enter Username" name="username" required><br>
+            <label><b>Password</b></label><br>
+            <input type="password" placeholder="Enter Password" name="password" required  autocomplete="off"><br>
+            <button type="button" id="login_btn">Login</button>
+        </form>
+        <div class="login-msg" id="login_msg"></div>
+    </div>
+
+
+    <div class="chat-container">
+        <div class="display-message">
+            <div class="ul-container">
+
+            </div>
+            <div class="msg-container">
+                
+            </div>
+        </div>
+        <div class="chat-form">
+            <label><b>Enter Message</b></label>
+            <form action="#" id="chat_message_form">
+                <textarea name="inputmessage" rows="2"></textarea>
+                <br>
+                <button type="button" id="send_chatmsg_btn">Send</button>
+            </form>
+        </div>
+    </div>
+
+  
+
+    </body>
+</html>

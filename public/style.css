@@ -1,0 +1,149 @@
+body
+{
+    font-size:120%;
+    font-family: Arial, Georgia, Verdana, Times New Roman, serif, sans-serif;
+}
+
+.login-container 
+{
+    background-color:#c1c9e3;
+    padding: 10px;
+    max-width: 40%;
+    margin: auto;
+    overflow: hidden;
+    border: 3px solid #99c2f7;
+    /* display: none;*/
+}
+
+.login-msg 
+{
+    text-align: center;
+    color:#5f5ffc;
+}
+
+input[type=text], input[type=password] 
+{
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #e3e3c1;
+    display: inline-block;
+    box-sizing: border-box;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    margin-left: 0px;
+    margin-right: 10px;
+}
+
+button 
+{
+   width: 100%;
+   margin-top: 10px;
+   margin-bottom: 10px;
+   padding: 5px;
+   font-weight: bold;
+   font-size: 18px;
+}
+
+.chat-container
+{
+    max-width: 80%;
+    margin: 10px auto;
+    padding: 10px;
+    border: 3px solid #99c2f7;
+    background-color: #c1c9e3;
+    display: none;
+}
+
+
+.display-message
+{
+    display: flex;
+    margin-bottom: 10px;
+}
+
+.ul-container
+{
+    flex: 0.25;
+    padding: 20px;
+    margin: 5px;
+    border: 2px solid #6a8ffc;
+    box-sizing: border-box;
+    overflow-y: scroll;
+    word-wrap: break-word;
+}
+
+.user 
+{
+    padding:5px;
+    margin:2px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.msg-container
+{
+    flex: 0.75;
+    height: 350px;
+    padding: 20px;
+    margin: 5px;
+    border: 2px solid #6a8ffc;
+    box-sizing: border-box;
+    overflow-y: scroll;
+    word-wrap: break-word;
+}
+
+.msg 
+{
+    margin: 15px 5px;
+    padding: 10px;
+    background-color:#f5f5f5;
+    border-radius: 10px;
+}
+
+.chat-form
+{
+    padding:5px;
+}
+
+textarea 
+{
+   width: 100%;
+   padding: 5px;
+}
+
+@media only screen and (max-width: 500px) 
+{
+    
+.login-container 
+{
+    max-width: 90%;
+    border: 1px solid #99c2f7;
+}
+
+.chat-container
+{
+    max-width: 100%;
+    margin: 5px auto;
+    padding: 5px;
+    border: 1px solid #99c2f7;
+}
+
+.ul-container
+{
+    flex: 0;
+    display: none;
+}
+
+.msg-container
+{
+    flex:1.0;
+    padding: 5px;
+    border: 1px solid #6a8ffc;
+}
+
+.msg 
+{
+    padding: 5px;
+}
+
+}
