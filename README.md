@@ -1,6 +1,7 @@
 # DenoWebRTCGroupChat
 A Simple Group Chat application using webrtc datachannel 
 
+
 ## Introduction
 This is a simple html 5 peer to peer group chat application using webrtc datachannel. 
 The signaling server runs on Deno, a secure runtime for javascript and typescript.
@@ -13,6 +14,11 @@ signaling server. For NAT traversal, the public google stun server is used.
 
 If there are firewalls or the NAT types that cannot be traversed and the peer to peer webrtc datachannel fails to be established; the chat application 
 falls back to relaying messages through the signal server. 
+
+## Screenshot
+
+![groupchat image](https://github.com/ngchianglin/DenoWebRTCGroupChat/blob/main/image/groupchat.png)
+
 
 ## Requirements
 * The latest version of Deno runtime is required from [https://deno.land/](https://deno.land/)
