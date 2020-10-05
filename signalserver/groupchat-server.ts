@@ -76,6 +76,7 @@ const MAX_SOCKETS = 30;
 const HOUSE_KEEP_INTERVAL = 15 * 60 * 1000; 
 const KEEP_ALIVE_INTERVAL = 25 * 1000;
 const SESSION_INTERVAL = 75 * 1000;
+const USER_ENTROPY_LENGTH = 64;
 
 
 const http_options = {hostname:"127.0.0.1",port:8000};
@@ -419,10 +420,16 @@ async function handleUserLogin(clientstring:any, obj:any, sock: WebSocket)
     {
         log.info("login success : " + cmd.username + " : " + clientstring + " : " + new Date());
         let user = new ChatUser(cmd.username!, sock);
+        let user_entropy = obj.entropy;
+      
+        if(user_entropy === undefined || user_entropy === "0" || user_entropy.length < USER_ENTROPY_LENGTH)
+        {
+            log.warning("Invalid entropy from user " + user.username);
+            user_entropy = Math.ceil(Math.random() * 1000000000);
+        }
+
         let ran = Math.ceil(Math.random() * 1000000000);
-
-        let sess = user.uuid + clientstring + Date.now().toString() + ran + cmd.username;
-
+        let sess = user.uuid + clientstring + Date.now().toString() + ran + user_entropy + cmd.username;
         const hash = createHash("sha256");
         hash.update(sess);
         user.uuid = hash.toString();

@@ -42,6 +42,7 @@ Sep 2020
    const KEEP_ALIVE_INTERVAL = 25 * 1000;
    const PEER_KEEP_ALIVE_FAIL_THRESHOLD = 2;
    const TOUCH_DISENGAGE_TIME = 5 * 1000;
+   const ENTROPY_LENGTH = 32;
 
    let socket = null;
    let login_throttle = false;
@@ -205,17 +206,56 @@ Sep 2020
    /* Web form submits the login credentials */
    function submitLogin(username, password)
    {
+        let entropy = generateRandom();
+        debug_log("Entropy: " + entropy);
+        
         /* Send login credentials */
         sendSignalMessage(
             {
                  command:'Login',
                  from: username,
-                 password: password
+                 password: password,
+                 entropy: entropy
             }
         );
 
         username = password = "";
         
+   }
+
+   /* Generate a random string for more entropy using webcrypto */
+   function generateRandom()
+   {
+       let alpha = ['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'];
+       let ran = new Uint8Array(ENTROPY_LENGTH);
+       try
+       {
+            window.crypto.getRandomValues(ran);
+       }
+       catch(err)
+       {
+            debug_log("Error generating random entropy " + err);
+            return "0";
+       }
+      
+       let hexstr ="";
+       let mask = 0x0f;
+
+       for(let i=0; i< ran.length; i++)
+       {
+           let hex = "";
+           let val = ran[i];
+           let index = val & mask;
+           hex = alpha[index]; 
+
+           val = val >> 4;
+           index = val & mask;
+           hex = alpha[index] + hex; 
+           hexstr += hex;
+       }
+
+       return hexstr;
+
    }
 
 
