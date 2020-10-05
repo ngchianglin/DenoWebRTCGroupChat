@@ -15,9 +15,15 @@ signaling server. For NAT traversal, the public google stun server is used.
 If there are firewalls or the NAT types that cannot be traversed and the peer to peer webrtc datachannel fails to be established; the chat application 
 falls back to relaying messages through the signal server. 
 
-## Screenshot
+## Screenshots
 
-![groupchat image](https://github.com/ngchianglin/DenoWebRTCGroupChat/blob/main/image/groupchat.png)
+**GroupChat Login Page**
+
+![Group chat login page](https://github.com/ngchianglin/DenoWebRTCGroupChat/blob/main/image/groupchat-login.png)
+
+**GroupChat Chat Screen**
+
+![Chat Screen](https://github.com/ngchianglin/DenoWebRTCGroupChat/blob/main/image/groupchat.png)
 
 
 ## Requirements
