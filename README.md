@@ -4,7 +4,7 @@ A Simple Group Chat application using webrtc datachannel
 
 ## Introduction
 This is a simple html 5 peer to peer group chat application using webrtc datachannel. 
-The signaling server runs on Deno, a secure runtime for javascript and typescript.
+The signaling server runs on [Deno](https://deno.land/), a secure runtime for javascript and typescript.
 There are no third party modules dependency for the chat application, it is pure html5, a stylesheet and a javascript file. 
 The signaling server only uses the Deno standard library. 
 
@@ -29,6 +29,7 @@ falls back to relaying messages through the signal server.
 ## Requirements
 * The latest version of Deno runtime is required from [https://deno.land/](https://deno.land/)
 * Deno standard library which will be downloaded automatically when the signal server is executed for the first time. 
+* Latest version of firefox, chromium or chrome browser. 
 
 ## Installation and Deployment
 
