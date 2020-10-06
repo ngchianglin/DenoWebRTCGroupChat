@@ -35,7 +35,7 @@ Sep 2020
 
    const STUN_SERVER = {'urls': 'stun:stun.l.google.com:19302'};
    //const STUN_SERVER = {'urls': 'stun:stun.nighthour.sg:443'};
-   const PEER_CONNECTION_TIMEOUT = 15000; 
+   const PEER_CONNECTION_TIMEOUT = 10000; 
    const MAX_PEER_RETRIES = 2; 
    const MAX_PEER_NOACTIVITY_TIME = 60 * 1000; 
    const MAX_CHAT_HISTORY_SIZE = 250;
@@ -43,6 +43,10 @@ Sep 2020
    const PEER_KEEP_ALIVE_FAIL_THRESHOLD = 2;
    const TOUCH_DISENGAGE_TIME = 5 * 1000;
    const ENTROPY_LENGTH = 32;
+   const AES_KEY_LEN = 128;
+   const AES_IV_LEN = 12;
+   const AES_TYPE = "AES-GCM";
+
 
    let socket = null;
    let login_throttle = false;
@@ -59,13 +63,14 @@ Sep 2020
    let chat_history = 0; 
    let activeusers = new Map();
    let allow_relay = false; 
+   let secret; 
 
    window.addEventListener("load", (event) => { initform(); });
 
    /* An active chat user */
    class ActiveUser
    {
-       constructor(username, peerconnection)
+       constructor(username, peerconnection, peerkey)
        {
            this.username = username;
            this.peerconnection = peerconnection;
@@ -74,6 +79,7 @@ Sep 2020
            this.keepalivefail = 0;
            this.lastseen = new Date().getTime();
            this.relay = false; 
+           this.secret = peerkey;
        }
 
    }
@@ -206,28 +212,200 @@ Sep 2020
    /* Web form submits the login credentials */
    function submitLogin(username, password)
    {
-        let entropy = generateRandom();
+        let entropy = generateRandom(ENTROPY_LENGTH);
         debug_log("Entropy: " + entropy);
-        
-        /* Send login credentials */
-        sendSignalMessage(
-            {
-                 command:'Login',
-                 from: username,
-                 password: password,
-                 entropy: entropy
-            }
-        );
-
-        username = password = "";
-        
+        generateKeySendLogin(username, password, entropy);      
    }
 
-   /* Generate a random string for more entropy using webcrypto */
-   function generateRandom()
+
+   /* Generate secret key for encrypting message and sends login to signal server */
+   async function generateKeySendLogin(username, password, entropy)
+   {
+        window.crypto.subtle.generateKey(
+            {
+                name: AES_TYPE,
+                length: AES_KEY_LEN,
+            },
+            true,
+            ["encrypt", "decrypt"]
+        ).then(
+
+            async (key) => {
+
+                secret = key;
+                let secret_arr = await getNumberArrayFromKey(secret);
+               
+                /* Send login credentials */
+                sendSignalMessage(
+                    {
+                        command:'Login',
+                        from: username,
+                        password: password,
+                        entropy: entropy,
+                        secret: secret_arr
+                    }
+                );
+                username = password = "";
+                secret_arr = raw_key = raw_key_buf = key = null;
+            
+            }
+
+        );
+
+   }
+
+
+   /* Crypto function to get secret key as an array of number */
+   async function getNumberArrayFromKey(secret_key)
+   {
+        let raw_key = await window.crypto.subtle.exportKey("raw", secret_key);
+        let raw_key_buf = new Uint8Array(raw_key);
+        
+        return getNumberArrayFromBytes(raw_key_buf);
+   }
+
+
+   /* Crypto Get number array from byte array */
+   function getNumberArrayFromBytes(bytes)
+   {
+       let num_arr = [];
+       for(let i = 0 ; i < bytes.length; i++)
+       {
+           num_arr.push(bytes[i]);
+       }
+
+       return num_arr;
+   }
+
+
+   /* Crypto Get byte array from number array */
+   function getByteArrayFromNumbers(numbers)
+   {
+       let byte_arr = new Uint8Array(numbers.length);
+       for(let i = 0; i < numbers.length; i++)
+       {
+           byte_arr[i] = numbers[i];
+       }
+
+       return byte_arr;
+   }
+
+
+    /* Crypto function to convert array of numbers to raw secret key */
+    async function getSecretKey(secret_arr)
+    {
+        let keysize = AES_KEY_LEN / 8;
+        let rawkey = new Uint8Array(keysize);
+ 
+        for(let i=0 ; i< secret_arr.length; i++)
+        {
+            rawkey[i] = secret_arr[i];
+        }
+ 
+        let key = null;
+        try
+        {
+             key = await window.crypto.subtle.importKey(
+                 "raw",
+                 rawkey,
+                 AES_TYPE,
+                 false,
+                 ["encrypt", "decrypt"]
+             );
+        }
+        catch(err)
+        {
+            debug_log("Error importing key " + err);
+        }
+ 
+       return key;
+ 
+    }
+
+
+    /* Crypto Encrypt chat message */
+    async function encryptChatMessage(message)
+    {
+        let utf8_encoder = new TextEncoder();
+        let enc = utf8_encoder.encode(message);
+        let iv = window.crypto.getRandomValues(new Uint8Array(AES_IV_LEN));
+        let ciphertext = null;
+
+        try
+        {
+            ciphertext = await window.crypto.subtle.encrypt(
+                {
+                  name: AES_TYPE,
+                  iv: iv
+                },
+                secret,
+                enc
+            );
+        }
+        catch(err)
+        {
+            debug_log("Failed to encrypt chat message " + err);
+            displayChatMessage("", "Failed to encrypt chat message");
+        }
+
+        let bytes = new Uint8Array(ciphertext);
+        let message_arr = getNumberArrayFromBytes(bytes);
+        let iv_arr = getNumberArrayFromBytes(iv);
+
+        return {message:message_arr,iv:iv_arr};
+
+    }
+
+
+    /* Crypto Decrypt Chat Message */
+    async function decryptChatMessage(msg_obj, key)
+    {
+        let iv_arr = msg_obj.iv;
+        let message_arr = msg_obj.message;
+
+        if(iv_arr === undefined || message_arr === undefined)
+        {
+            debug_log("Cannot decrypt invalid chat message");
+            displayChatMessage("", "Cannot decrypt invalid chat message");
+            return null;
+        }
+
+        let iv = getByteArrayFromNumbers(iv_arr);
+        let ciphertext = getByteArrayFromNumbers(message_arr);
+        let decrypted = null;
+
+        try
+        {
+            decrypted = await window.crypto.subtle.decrypt(
+                {
+                  name: AES_TYPE,
+                  iv: iv
+                },
+                key,
+                ciphertext
+            );
+
+        }
+        catch(err)
+        {
+            debug_log("Failed to decrypt chat message " + err);
+            displayChatMessage("", "Failed to decrypt chat message");
+            return null;
+        }
+
+        let utf8_decoder = new TextDecoder();
+        let decrypted_message = utf8_decoder.decode(decrypted);
+
+        return decrypted_message;
+
+    }
+
+
+     /* Crypto Generate a random string for more entropy using webcrypto */
+   function generateRandom(len)
    {
        let alpha = ['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'];
-       let ran = new Uint8Array(ENTROPY_LENGTH);
+       let ran = new Uint8Array(len);
        try
        {
             window.crypto.getRandomValues(ran);
@@ -257,7 +435,7 @@ Sep 2020
        return hexstr;
 
    }
-
+ 
 
    /* Web UI displays Chat Component upon login Success */
    function showchatComponent()
@@ -378,6 +556,7 @@ Sep 2020
 
    }
 
+
    /* Function to handle Disconnection notice for websocket relaying users*/
    function handleDisconnectNotice(msg_obj)
    {
@@ -426,7 +605,7 @@ Sep 2020
 
 
    /* Relayed Chat Message received. Display it */
-   function handleRelayChatMessage(msg_obj)
+   async function handleRelayChatMessage(msg_obj)
    {
         let peername = msg_obj.from;
         let peer = activeusers.get(peername);
@@ -438,7 +617,10 @@ Sep 2020
             return;
         }
 
-        displayChatMessage(msg_obj.from, msg_obj.msg);
+        let decrypted = await decryptChatMessage(msg_obj.msg, peer.secret);
+        if(decrypted === null) decrypted = "null";
+
+        displayChatMessage(msg_obj.from, decrypted);
    }
 
 
@@ -481,7 +663,7 @@ Sep 2020
 
 
    /* Initialize connections to peers from userlist */
-   function initialize_peers(userlist)
+   async function initialize_peers(userlist)
    {
         let arr = userlist; 
         let num_peer = arr.length - 1; 
@@ -500,10 +682,20 @@ Sep 2020
 
         for(let i=0; i < arr.length; i++)
         {
-            let peername = arr[i];
-            if (peername === username) continue; 
+            let obj = arr[i];
+            let peername = obj.user;
+            let secret_arr = obj.secret;
+            
+            if(peername === undefined || secret_arr === undefined || peername === username) continue;
 
-            connectToPeer(peername);
+            let peerkey = await getSecretKey(secret_arr);
+            if(peerkey === null)
+            {
+                debug_log("Invalid key from peer " + peername + " skipping");
+                continue;
+            }
+
+            connectToPeer(peername, peerkey);
             /* Fall back to relaying if webrtc fails */
             setTimeout( 
                 ()=>{
@@ -515,6 +707,8 @@ Sep 2020
 
    }
 
+
+  
 
    /* Accepts Peer webrtc ICE candidate */
    async function acceptPeerIce(ice_obj)
@@ -578,7 +772,15 @@ Sep 2020
         const configuration = {'iceServers': [STUN_SERVER]};
         const peerConnection = new RTCPeerConnection(configuration);
 
-        peer = new ActiveUser(peername, peerConnection);
+        let secret_arr = offer_obj.secret;
+        let peerkey = await getSecretKey(secret_arr);
+        if(peerkey === null)
+        {
+            debug_log("Invalid key from peer " + peername + " rejecting offer");
+            return;
+        }
+
+        peer = new ActiveUser(peername, peerConnection, peerkey);
         activeusers.set(peername, peer);
 
         peerConnection.ondatachannel = (event) => 
@@ -618,7 +820,7 @@ Sep 2020
 
 
    /* Connects to Peers Using WebRTC Datachannel */
-   async function connectToPeer(peername)
+   async function connectToPeer(peername, peerkey)
    {
         debug_log("Connecting to " + peername);
         displayChatMessage("", "Connecting to " + peername);
@@ -627,7 +829,7 @@ Sep 2020
         const peerConnection = new RTCPeerConnection(configuration);
         const dataChannel = peerConnection.createDataChannel(peername);
 
-        peer = new ActiveUser(peername, peerConnection);
+        peer = new ActiveUser(peername, peerConnection, peerkey);
         peer.datachannel = dataChannel;
         activeusers.set(peername, peer);
 
@@ -637,6 +839,9 @@ Sep 2020
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
 
+        /* Get our own secret key and send this to the peer */
+        let secret_arr = await getNumberArrayFromKey(secret);
+
         debug_log("Sending offer to " + peername);
 
         sendSignalMessage(
@@ -645,11 +850,13 @@ Sep 2020
                 from: username,
                 uuid: myid,
                 to: peername,
-                webrtc: offer
+                webrtc: offer,
+                secret: secret_arr
             }
         );
 
    }
+   
 
    /* Set the webrtc datachannel event handler */
    function setDataChannelEventHandler(datachannel, peername)
@@ -690,9 +897,7 @@ Sep 2020
             if(peer === "undefined" || !peer.established) return;
 
             debug_log("Network error " + peername);
-            displayChatMessage("", "Network error " + peername);
             datachannel.close();
-            
         }
 
    }
@@ -858,7 +1063,7 @@ Sep 2020
 
 
    /* Receive a webrtc chat message and display it */
-   function receiveChatMessage(message)
+   async function receiveChatMessage(message)
    {
        let msg_obj = null;
 
@@ -905,22 +1110,28 @@ Sep 2020
 
        /* update peer last activity time */
        peer.lastseen = Date.now();
-       displayChatMessage(msg_obj.from, msg_obj.msg);
+
+       let decrypted = await decryptChatMessage(msg_obj.msg, peer.secret);
+       if(decrypted === null) decrypted = "null";
+
+       displayChatMessage(msg_obj.from, decrypted);
 
    }
 
 
    /* Send a chat message to all peers */
-   function sendChatMessage()
+   async function sendChatMessage()
    {
        debug_log("Sending chat message");
        let chat_form = document.getElementById("chat_message_form");
        let message = chat_form.inputmessage.value; 
 
+       let msg_obj = await encryptChatMessage(message);
+
        let json = JSON.stringify(
            {
                from: username,
-               msg: message
+               msg: msg_obj
            }
        );
 
@@ -945,10 +1156,10 @@ Sep 2020
                    }
                }
            );
-       }
 
+          if(relay_peer.length > 0) sendMessageRelayPeer(relay_peer, msg_obj);
 
-       if(relay_peer.length > 0) sendMessageRelayPeer(relay_peer, message);
+       } 
 
        chat_form.reset();
     

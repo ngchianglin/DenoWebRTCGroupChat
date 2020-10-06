@@ -50,13 +50,15 @@ class ChatUser
     uuid: string; 
     sock: WebSocket;
     lastseen: number;
+    secret: number[];
 
-    constructor(username:string, sock:WebSocket)
+    constructor(username:string, sock:WebSocket, secret:number[])
     {
         this.username = username;
         this.sock = sock;
         this.uuid = v4.generate();
         this.lastseen = Date.now(); 
+        this.secret = secret;
     }
 
 }
@@ -397,6 +399,20 @@ async function relayToPeer(obj:any)
     let dest = users.get(obj.to);
     if(dest === undefined)  return; 
 
+    if(obj.command === "Offer")
+    { 
+        /* Offer comes with the sender secret key*/
+        await sendMessage(dest, {
+            command: obj.command,
+            from: source.username,
+            webrtc: obj.webrtc,
+            secret: obj.secret
+        });
+
+        return;
+    }
+
+    /* All other webrtc signals */
     await sendMessage(dest, {
         command: obj.command,
         from: source.username,
@@ -419,14 +435,25 @@ async function handleUserLogin(clientstring:any, obj:any, sock: WebSocket)
     if (checkLogin(cmd))
     {
         log.info("login success : " + cmd.username + " : " + clientstring + " : " + new Date());
-        let user = new ChatUser(cmd.username!, sock);
+        
         let user_entropy = obj.entropy;
       
         if(user_entropy === undefined || user_entropy === "0" || user_entropy.length < USER_ENTROPY_LENGTH)
         {
-            log.warning("Invalid entropy from user " + user.username);
+            log.warning("Invalid entropy from user " + cmd.username);
             user_entropy = Math.ceil(Math.random() * 1000000000);
         }
+
+        let user_secret = obj.secret;
+        if(user_secret === undefined) 
+        {
+            log.warning("Secret undefined from user " + cmd.username);
+            user_secret = [];
+        }
+
+        log.info(cmd.username + " secret : " + user_secret);
+
+        let user = new ChatUser(cmd.username!, sock, user_secret);
 
         let ran = Math.ceil(Math.random() * 1000000000);
         let sess = user.uuid + clientstring + Date.now().toString() + ran + user_entropy + cmd.username;
@@ -552,14 +579,13 @@ async function sendDisconnectNotice(disconnect_user:string)
 /* format chat users into a object */
 function formatUserList()
 {
-    let arr:string[] = [];
+    let arr:object[] = [];
     users.forEach(
-
         (value, key) => 
         {
-            arr.push(key);
+            let secret_key = value.secret;
+            arr.push({user: key, secret: secret_key});
         } 
-
     );
 
     return {command:"UserList", userlist:arr};
