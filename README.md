@@ -29,6 +29,7 @@ falls back to relaying messages through the signal server.
 ## Requirements
 * The latest version of Deno runtime is required from [https://deno.land/](https://deno.land/)
 * Deno standard library which will be downloaded automatically when the signal server is executed for the first time. 
+* A web and proxy server like Nginx with TLS/SSL enabled. 
 * Latest version of firefox, chromium or chrome browser. 
 
 ## Installation and Deployment
