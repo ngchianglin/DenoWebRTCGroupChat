@@ -101,6 +101,11 @@ button
     border-radius: 10px;
 }
 
+.msguser
+{
+    font-weight: bold;
+}
+
 .chat-form
 {
     padding:5px;

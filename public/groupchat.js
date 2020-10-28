@@ -1445,12 +1445,23 @@ Sep 2020
         const message_component = document.querySelector(".msg-container");
         
         let msg_div = document.createElement('div');
-        let sanitize_user = sanitize(user);
-        sanitize_user = "<b>" + sanitize_user + "</b>";
-        let sanitize_msg = sanitize(message);
-
         msg_div.setAttribute('class', 'msg'); 
-        msg_div.innerHTML = sanitize_user + ": " + sanitize_msg;
+
+        let sanitize_user = sanitize(user);
+        let chat_user = document.createElement('span');
+        chat_user.setAttribute('class','msguser');
+        chat_user.innerHTML = sanitize_user;
+
+        let chat_divider = document.createElement('span');
+        chat_divider.textContent = ": ";
+
+        let sanitize_msg = sanitize(message);
+        let chat_msg = document.createElement('span');
+        chat_msg.innerHTML= sanitize_msg;
+
+        msg_div.appendChild(chat_user);
+        msg_div.appendChild(chat_divider);
+        msg_div.appendChild(chat_msg);
 
         if(chat_history >= MAX_CHAT_HISTORY_SIZE)
         {
