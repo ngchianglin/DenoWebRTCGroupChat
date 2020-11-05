@@ -4,18 +4,18 @@ Ng Chiang Lin
 Sep 2020
 */
 
-import {serve} from "https://deno.land/std@0.71.0/http/server.ts";
+import {serve} from "https://deno.land/std@0.76.0/http/server.ts";
 import 
 {
     acceptable,
     acceptWebSocket,
     isWebSocketCloseEvent,
     WebSocket
-} from "https://deno.land/std@0.71.0/ws/mod.ts";
-import { v4 } from 'https://deno.land/std@0.71.0/uuid/mod.ts';
-import { readLines } from "https://deno.land/std@0.71.0/io/mod.ts";
-import { createHash } from "https://deno.land/std@0.71.0/hash/mod.ts";
-import * as log from "https://deno.land/std@0.71.0/log/mod.ts";
+} from "https://deno.land/std@0.76.0/ws/mod.ts";
+import { v4 } from 'https://deno.land/std@0.76.0/uuid/mod.ts';
+import { readLines } from "https://deno.land/std@0.76.0/io/mod.ts";
+import { createHash } from "https://deno.land/std@0.76.0/hash/mod.ts";
+import * as log from "https://deno.land/std@0.76.0/log/mod.ts";
 
 
 interface Command
@@ -71,6 +71,7 @@ let socket_list:WebSocket[] = [];
 let num_sockets = 0;
 let server_start_time = 0;
 let allow_relay = true; 
+let server_random = "";
 
 const PASSWD_FILE = "pass/passwd";
 const MAX_FAILED_LOGIN = 5; 
@@ -87,6 +88,7 @@ server_start_time = Date.now();
 log.info("server started 127.0.0.1:8000 " + new Date());
 
 await initValidUser(PASSWD_FILE);
+server_random = await getRandomString();
 await checkAlive();
 await houseKeep();
 
@@ -159,6 +161,36 @@ async function initValidUser(password_file:string)
     Deno.close(fileReader.rid);
 
 } 
+
+
+/* Generate a random string using /dev/urandom */
+async function getRandomString()
+{
+    let fileReader = await Deno.open("/dev/urandom");
+    let buf = new Uint8Array(128);
+    const numRead = await Deno.read(fileReader.rid, buf);
+   
+    if(numRead != 128)
+    {
+        log.critical("Cannot get enough bytes from /dev/urandom");
+        Deno.close(fileReader.rid);
+        Deno.exit(1);
+    }
+
+    Deno.close(fileReader.rid);
+
+    const randstring = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()+-.?<>:;";
+    let index=0;
+    let str='';
+
+    for(let i=0; i < buf.length; i++)
+    {
+        index = buf[i] % randstring.length;
+        str += randstring.charAt(index);
+    }
+
+    return str; 
+}
 
 
 /* Handles the websocket connection */
@@ -456,7 +488,7 @@ async function handleUserLogin(clientstring:any, obj:any, sock: WebSocket)
         let user = new ChatUser(cmd.username!, sock, user_secret);
 
         let ran = Math.ceil(Math.random() * 1000000000);
-        let sess = user.uuid + clientstring + Date.now().toString() + ran + user_entropy + cmd.username;
+        let sess = server_random + user.uuid + clientstring + Date.now().toString() + ran + user_entropy + cmd.username;
         const hash = createHash("sha256");
         hash.update(sess);
         user.uuid = hash.toString();
