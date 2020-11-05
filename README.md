@@ -31,6 +31,8 @@ falls back to relaying messages through the signal server.
 * Deno standard library which will be downloaded automatically when the signal server is executed for the first time. 
 * A web and proxy server like Nginx with TLS/SSL enabled. 
 * Latest version of firefox, chromium or chrome browser. 
+* Linux OS such as debian, ubuntu, redhat etc...for running the signaling server.  
+
 
 ## Installation and Deployment
 
