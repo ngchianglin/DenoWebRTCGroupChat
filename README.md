@@ -44,7 +44,7 @@ The signalserver directory contains 2 files. groupchat-server.ts and pass-util.t
 It is configured to listen on localhost port 8000 for websocket connections. Nginx can be configured to proxy websocket connections to the signaling server.
 Use TLS/SSL for proxying. 
 
-    deno run --allow-net --allow-read=./pass/passwd groupchat-server.ts 2>&1 > chatserver.log &
+    deno run --allow-net --allow-read=./pass/passwd,/dev/urandom groupchat-server.ts 2>&1 > chatserver.log &
 
 The pass-util.ts is a utility to create chat accounts. The accounts are stored in a passwd file inside a pass directory relative to where you run 
 the pass-util.ts. The pass directory needs to be created manually.
